@@ -93,9 +93,6 @@ jobs:
         XSERVER_ACCOUNTS: ${{ secrets.XSERVER_ACCOUNTS }}
         TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
         TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-        GITHUB_REPOSITORY: ${{ github.repository }}
-        GITHUB_RUN_ID: ${{ github.run_id }}
-        GITHUB_SERVER_URL: ${{ github.server_url }}
       run: |
         echo "🚀 启动XServer GAME完全自动化登录流程 (多账户版)..."
         python main.py
