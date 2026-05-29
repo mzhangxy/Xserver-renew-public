@@ -369,19 +369,12 @@ def send_telegram_notification():
         else:
             report_content = "❓ 未找到 README.md 报告文件"
 
-        server_url = os.getenv("GITHUB_SERVER_URL", "https://github.com")
-        repo = os.getenv("GITHUB_REPOSITORY", "unknown/repo")
-        run_id = os.getenv("GITHUB_RUN_ID", "0")
-        
         beijing_time = datetime.datetime.now(timezone(timedelta(hours=8))).strftime('%Y-%m-%d %H:%M:%S')
 
         message = (
             f"🐢 *Xserver 多账号续期通知*\n"
             f"📅 执行时间：{beijing_time}\n\n"
-            f"{report_content}\n"
-            f"📋 *详细信息：*\n"
-            f"🔗 [查看运行日志]({server_url}/{repo}/actions/runs/{run_id})\n"
-            f"📸 [下载错误截图]({server_url}/{repo}/actions/runs/{run_id}#artifacts)"
+            f"{report_content}"
         )
 
         url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
