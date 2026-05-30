@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-XServer GAME 自动登录和续期脚本 (内存拼装报告 + HTML安全推送 + Xray代理)
+XServer GAME 自动登录和续期脚本 (内存拼装报告 + HTML安全推送 + Xray代理 + 动态限制识别)
 """
 
 import asyncio
@@ -175,7 +175,6 @@ class XServerAutoLogin:
                 await self.page.press(password_selector, "Enter")
             print(f"✅ [账号{self.account_index}] 登录表单已提交")
             
-            # 🚀 智能等待：抛弃固定sleep，等待URL变化或关键元素出现
             try:
                 print(f"⏳ [账号{self.account_index}] 等待页面跳转响应...")
                 await self.page.wait_for_url("**/xapanel/xmgame/index**", timeout=20000)
@@ -201,7 +200,6 @@ class XServerAutoLogin:
                     await self.page.wait_for_selector(game_button_selector, timeout=self.wait_timeout)
                     await self.page.click(game_button_selector)
                     
-                    # 🚀 智能等待跳转到游戏管理页面
                     await self.page.wait_for_url("**/xmgame/game**", timeout=15000)
                     print(f"✅ [账号{self.account_index}] 跳转到游戏管理页面")
                     
@@ -243,8 +241,12 @@ class XServerAutoLogin:
             await self.page.wait_for_selector(upgrade_selector, timeout=self.wait_timeout)
             await self.page.click(upgrade_selector)
             
-            # 🚀 智能等待
+            # 等待 URL 跳转
             await self.page.wait_for_url("**/xmgame/game/freeplan/extend/index**", timeout=15000)
+            
+            # 【修复点 1】：加入物理缓冲，确保页面元素完全渲染再进行检测
+            await asyncio.sleep(2) 
+            
             await self.verify_upgrade_page()
         except Exception as e:
             print(f"❌ [账号{self.account_index}] 点击升级按钮失败: {e}")
@@ -260,10 +262,18 @@ class XServerAutoLogin:
     
     async def check_extension_restriction(self):
         try:
-            restriction_selector = "text=/残り契約時間が24時間を切るまで、期限の延長は行えません/"
+            # 【修复点 2】：使用正则 \d+ 匹配任意小时数，兼容 16小时、24小时 等各种情况
+            restriction_selector = "text=/残り契約時間が\\d+時間を切るまで、期限の延長は行えません/"
             try:
-                element = await self.page.wait_for_selector(restriction_selector, timeout=3000)
-                print(f"✅ [账号{self.account_index}] 发现限制信息：24小时内方可续期。")
+                # 恢复 5000ms 超时，给页面充足的响应时间
+                element = await self.page.wait_for_selector(restriction_selector, timeout=5000)
+                restriction_text = await element.text_content()
+                
+                # 顺便把具体的小时数提取出来打印，更直观
+                hour_match = re.search(r'(\d+)時間', restriction_text)
+                hour_str = hour_match.group(1) if hour_match else "未知"
+                
+                print(f"✅ [账号{self.account_index}] 发现限制信息：{hour_str}小时内方可续期。")
                 self.renewal_status = "Unexpired"
                 return True
             except Exception:
@@ -438,7 +448,7 @@ async def main():
         auto_login = XServerAutoLogin(email, password, index)
         success = await auto_login.run()
         
-        # 【核心修改】直接从 auto_login 实例对象中读取最终状态，无需修改 run() 函数
+        # 直接从 auto_login 实例对象中读取最终状态，无需修改 run() 函数
         masked_email = email.split('@')[0][:3] + "***@" + email.split('@')[-1]
         all_results.append({
             "index": index,
