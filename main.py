@@ -71,7 +71,7 @@ class XServerAutoLogin:
                 "args": browser_args
             }
             
-            # 🌐 代理配置：注入你的 Xray-core 本地 HTTP 代理端口
+            # 🌐 代理配置：注入 Xray-core HTTP 代理端口
             if IS_GITHUB_ACTIONS:
                 launch_options["proxy"] = {
                     "server": "http://127.0.0.1:10808"
@@ -175,12 +175,12 @@ class XServerAutoLogin:
                 await self.page.press(password_selector, "Enter")
             print(f"✅ [账号{self.account_index}] 登录表单已提交")
             
-            # 🚀 智能等待：抛弃固定sleep，等待URL变化或关键元素出现
+            # 等待URL变化或关键元素出现
             try:
                 print(f"⏳ [账号{self.account_index}] 等待页面跳转响应...")
                 await self.page.wait_for_url("**/xapanel/xmgame/index**", timeout=20000)
             except Exception:
-                print(f"⚠️ [账号{self.account_index}] 智能等待跳转超时，将交由后续逻辑校验...")
+                print(f"⚠️ [账号{self.account_index}] 等待跳转超时，将交由后续逻辑校验...")
                 
             return True
             
@@ -201,7 +201,7 @@ class XServerAutoLogin:
                     await self.page.wait_for_selector(game_button_selector, timeout=self.wait_timeout)
                     await self.page.click(game_button_selector)
                     
-                    # 🚀 智能等待跳转到游戏管理页面
+                    # 等待跳转到游戏管理页面
                     await self.page.wait_for_url("**/xmgame/game**", timeout=15000)
                     print(f"✅ [账号{self.account_index}] 跳转到游戏管理页面")
                     
@@ -243,7 +243,6 @@ class XServerAutoLogin:
             await self.page.wait_for_selector(upgrade_selector, timeout=self.wait_timeout)
             await self.page.click(upgrade_selector)
             
-            # 🚀 智能等待
             await self.page.wait_for_url("**/xmgame/game/freeplan/extend/index**", timeout=15000)
             await self.verify_upgrade_page()
         except Exception as e:
@@ -260,10 +259,10 @@ class XServerAutoLogin:
     
     async def check_extension_restriction(self):
         try:
-            restriction_selector = "text=/残り契約時間が24時間を切るまで、期限の延長は行えません/"
+            restriction_selector = "text=/残り契約時間が16時間を切るまで、期限の延長は行えません/"
             try:
                 element = await self.page.wait_for_selector(restriction_selector, timeout=3000)
-                print(f"✅ [账号{self.account_index}] 发现限制信息：24小时内方可续期。")
+                print(f"✅ [账号{self.account_index}] 发现限制信息：16小时内方可续期。")
                 self.renewal_status = "Unexpired"
                 return True
             except Exception:
@@ -432,7 +431,7 @@ async def main():
         if index < len(accounts):
             await asyncio.sleep(2)
 
-    # 在所有账号跑完后，统一触发 Telegram 通知
+    # 所有账号跑完后，统一触发 Telegram 通知
     send_telegram_notification()
 
     if all_success:
