@@ -3,7 +3,7 @@ name: XServer GAME Auto Renew
 on:
   schedule:
     # 每天北京时间22:35运行 (UTC时间: 14:35)
-    - cron: '35 14 * * *'
+    - cron: '49 15 * * *'
   workflow_dispatch:  # 允许手动触发
 
 jobs:
