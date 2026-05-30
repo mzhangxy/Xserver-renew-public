@@ -427,7 +427,7 @@ async def main():
             raise ValueError("账号列表为空")
     except Exception as e:
         print("❌ 账号配置无效，请确保 XSERVER_ACCOUNTS 环境变量格式为 JSON 数组。")
-        return
+        exit(1)
 
     with open("README.md", "w", encoding="utf-8") as f:
         f.write("## 🇯🇵 XServer GAME 多账号状态报告\n\n")
