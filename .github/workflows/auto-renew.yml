@@ -19,6 +19,8 @@ jobs:
     steps:
       - name: 🔄 检出代码
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # 👈 拉取完整历史，避免 Push 失败
       
       - name: 📥 下载私库脚本
         uses: actions/checkout@v4
@@ -113,8 +115,8 @@ jobs:
           git config --local user.email "actions@github.com"
           git config --local user.name "GitHub Actions"
           git add README.md
-          git diff --staged --quiet || git commit -m "📊 自动更新续期状态报告 [$(TZ='Asia/Shanghai' date '+%Y-%m-%d %H:%M:%S')]"
-          git push
+          # 👈 修改：明确 Push 的目标分支为当前工作流触发的分支
+          git diff --staged --quiet || (git commit -m "📊 自动更新续期状态报告 [$(TZ='Asia/Shanghai' date '+%Y-%m-%d %H:%M:%S')]" && git push origin HEAD:${{ github.ref_name }})
           
       - name: 📸 上传运行结果
         if: always()
