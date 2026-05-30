@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-XServer GAME 自动登录和续期脚本 (内存拼装报告 + HTML安全推送 + Xray代理 + 动态限制识别)
+XServer GAME 自动登录和续期脚本
 """
 
 import asyncio
@@ -179,7 +179,7 @@ class XServerAutoLogin:
                 print(f"⏳ [账号{self.account_index}] 等待页面跳转响应...")
                 await self.page.wait_for_url("**/xapanel/xmgame/index**", timeout=20000)
             except Exception:
-                print(f"⚠️ [账号{self.account_index}] 智能等待跳转超时，将交由后续逻辑校验...")
+                print(f"⚠️ [账号{self.account_index}] 等待跳转超时，将交由后续逻辑校验...")
                 
             return True
             
@@ -244,7 +244,7 @@ class XServerAutoLogin:
             # 等待 URL 跳转
             await self.page.wait_for_url("**/xmgame/game/freeplan/extend/index**", timeout=15000)
             
-            # 【修复点 1】：加入物理缓冲，确保页面元素完全渲染再进行检测
+            # 加入缓冲时间，确保页面元素完全渲染再进行检测
             await asyncio.sleep(2) 
             
             await self.verify_upgrade_page()
@@ -262,14 +262,12 @@ class XServerAutoLogin:
     
     async def check_extension_restriction(self):
         try:
-            # 【修复点 2】：使用正则 \d+ 匹配任意小时数，兼容 16小时、24小时 等各种情况
+            # 使用正则 \d+ 匹配任意小时数，兼容 16小时、24小时 等各种情况
             restriction_selector = "text=/残り契約時間が\\d+時間を切るまで、期限の延長は行えません/"
             try:
-                # 恢复 5000ms 超时，给页面充足的响应时间
                 element = await self.page.wait_for_selector(restriction_selector, timeout=5000)
                 restriction_text = await element.text_content()
                 
-                # 顺便把具体的小时数提取出来打印，更直观
                 hour_match = re.search(r'(\d+)時間', restriction_text)
                 hour_str = hour_match.group(1) if hour_match else "未知"
                 
@@ -401,7 +399,7 @@ def send_telegram_notification(results_list):
         payload = {
             "chat_id": chat_id,
             "text": message,
-            "parse_mode": "HTML", # 使用安全、稳定的 HTML 模式
+            "parse_mode": "HTML", 
             "disable_web_page_preview": True
         }
         
