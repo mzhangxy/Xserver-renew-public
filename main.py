@@ -71,7 +71,7 @@ class XServerAutoLogin:
                 "args": browser_args
             }
             
-            # 🌐 代理配置：注入 Xray-core 本地 HTTP 代理
+            # 🌐 代理配置：注入你的 Xray-core 本地 HTTP 代理端口
             if IS_GITHUB_ACTIONS:
                 launch_options["proxy"] = {
                     "server": "http://127.0.0.1:10808"
@@ -175,6 +175,7 @@ class XServerAutoLogin:
                 await self.page.press(password_selector, "Enter")
             print(f"✅ [账号{self.account_index}] 登录表单已提交")
             
+            # 🚀 智能等待：抛弃固定sleep，等待URL变化或关键元素出现
             try:
                 print(f"⏳ [账号{self.account_index}] 等待页面跳转响应...")
                 await self.page.wait_for_url("**/xapanel/xmgame/index**", timeout=20000)
@@ -200,6 +201,7 @@ class XServerAutoLogin:
                     await self.page.wait_for_selector(game_button_selector, timeout=self.wait_timeout)
                     await self.page.click(game_button_selector)
                     
+                    # 🚀 智能等待跳转到游戏管理页面
                     await self.page.wait_for_url("**/xmgame/game**", timeout=15000)
                     print(f"✅ [账号{self.account_index}] 跳转到游戏管理页面")
                     
@@ -241,6 +243,7 @@ class XServerAutoLogin:
             await self.page.wait_for_selector(upgrade_selector, timeout=self.wait_timeout)
             await self.page.click(upgrade_selector)
             
+            # 🚀 智能等待
             await self.page.wait_for_url("**/xmgame/game/freeplan/extend/index**", timeout=15000)
             await self.verify_upgrade_page()
         except Exception as e:
@@ -304,7 +307,6 @@ class XServerAutoLogin:
             self.renewal_status = "Failed"
     
     def append_readme(self):
-        """保留此函数仅用于写入仓库状态，TG通知不再使用此文件"""
         try:
             beijing_time = datetime.datetime.now(timezone(timedelta(hours=8)))
             current_time = beijing_time.strftime("%Y-%m-%d %H:%M:%S")
@@ -330,41 +332,27 @@ class XServerAutoLogin:
             with open("README.md", "a", encoding="utf-8") as f:
                 f.write(readme_content)
         except Exception as e:
-            pass
+            print(f"❌ 追加 README 失败: {e}")
     
     async def run(self):
-        """
-        运行结束后，返回一个包含关键结果信息的字典，供 TG 内存拼装使用
-        """
         try:
             print(f"\n🚀 [账号{self.account_index}] 开始处理: {self.email}")
-            if await self.validate_config() and \
-               await self.setup_browser() and \
-               await self.navigate_to_login() and \
-               await self.perform_login():
-                await self.handle_login_result()
+            if not self.validate_config(): return False
+            if not await self.setup_browser(): return False
+            if not await self.navigate_to_login(): return False
+            if not await self.perform_login(): return False
+            await self.handle_login_result()
             
-            self.append_readme() # 写入文件用于GitHub展示
-            
-        except Exception as e:
-            print(f"❌ [账号{self.account_index}] 发生异常: {e}")
             self.append_readme()
-            
+            return self.renewal_status in ["Success", "Unexpired"]
+        except Exception as e:
+            self.append_readme()
+            return False
         finally:
             await self.cleanup()
-            
-            # 返回结果字典
-            masked_email = self.email.split('@')[0][:3] + "***@" + self.email.split('@')[-1]
-            return {
-                "index": self.account_index,
-                "email": masked_email,
-                "status": self.renewal_status,
-                "old_expiry": self.old_expiry_time or 'Unknown',
-                "new_expiry": self.new_expiry_time or 'Unknown'
-            }
 
 # =====================================================================
-#                          Telegram 推送模块 (HTML 模式 + 内存直拼)
+#                          Telegram 推送模块 (直接组装变量)
 # =====================================================================
 def send_telegram_notification(results_list):
     """直接接收包含结果的列表，组装成安全的 HTML 发送"""
@@ -378,10 +366,10 @@ def send_telegram_notification(results_list):
     try:
         beijing_time = datetime.datetime.now(timezone(timedelta(hours=8))).strftime('%Y-%m-%d %H:%M:%S')
         
-        # 组装 HTML 格式消息体
         message = f"🐢 <b>Xserver 多账号续期通知</b>\n"
         message += f"📅 执行时间：{beijing_time}\n\n"
         
+        # 遍历传入的执行结果列表进行拼装
         for res in results_list:
             message += f"<b>账号 {res['index']}</b>: <code>{res['email']}</code>\n"
             message += "🖥️ 服务器：<code>🇯🇵Xserver(Mc)</code>\n"
@@ -397,13 +385,13 @@ def send_telegram_notification(results_list):
                 message += "📊 续期结果：❌Failed\n"
                 message += f"🕛️ 旧到期时间: <code>{res['old_expiry']}</code>\n"
             
-            message += "\n" # 账号之间的空行分隔
+            message += "\n" # 账号之间的空行
 
         url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
         payload = {
             "chat_id": chat_id,
             "text": message,
-            "parse_mode": "HTML", # 改为安全的 HTML 解析模式
+            "parse_mode": "HTML", # 使用安全、稳定的 HTML 模式
             "disable_web_page_preview": True
         }
         
@@ -422,7 +410,7 @@ def send_telegram_notification(results_list):
 
 async def main():
     print("=" * 60)
-    print("XServer GAME 自动续期 - Xray & Playwright (内存变量组装版)")
+    print("XServer GAME 自动续期 - Xray & Playwright (变量直拼优化版)")
     print("=" * 60)
     
     try:
@@ -433,12 +421,11 @@ async def main():
         print("❌ 账号配置无效，请确保 XSERVER_ACCOUNTS 环境变量格式为 JSON 数组。")
         return
 
-    # 初始化本地 README (仅供 GitHub Repo 查看)
     with open("README.md", "w", encoding="utf-8") as f:
         f.write("## 🇯🇵 XServer GAME 多账号状态报告\n\n")
 
     all_success = True
-    all_results = [] # 初始化空列表，用于收集每个账号的执行结果
+    all_results = [] # 初始化空列表，用于收集每个账号的结果字典
     
     for index, acc in enumerate(accounts, start=1):
         email = acc.get("email")
@@ -449,18 +436,25 @@ async def main():
             continue
             
         auto_login = XServerAutoLogin(email, password, index)
+        success = await auto_login.run()
         
-        # 捕获 run() 传回的结果字典
-        result_dict = await auto_login.run()
-        all_results.append(result_dict)
+        # 【核心修改】直接从 auto_login 实例对象中读取最终状态，无需修改 run() 函数
+        masked_email = email.split('@')[0][:3] + "***@" + email.split('@')[-1]
+        all_results.append({
+            "index": index,
+            "email": masked_email,
+            "status": auto_login.renewal_status,
+            "old_expiry": auto_login.old_expiry_time or 'Unknown',
+            "new_expiry": auto_login.new_expiry_time or 'Unknown'
+        })
         
-        if result_dict['status'] not in ["Success", "Unexpired"]:
+        if not success:
             all_success = False
             
         if index < len(accounts):
             await asyncio.sleep(2)
 
-    # 统一触发 Telegram 通知，直接将内存中的列表传进去！
+    # 统一触发 Telegram 通知，直接将内存中收集的列表传过去
     send_telegram_notification(all_results)
 
     if all_success:
