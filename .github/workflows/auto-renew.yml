@@ -1,8 +1,8 @@
 name: XServer GAME Auto Renew
 
 on:
-  schedule:
-    - cron: '09 21 * * *'
+  #schedule:
+  #  - cron: '09 21 * * *'
   workflow_dispatch:  # 允许手动触发
 
 jobs:
