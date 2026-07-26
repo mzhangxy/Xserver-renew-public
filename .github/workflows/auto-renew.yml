@@ -124,7 +124,7 @@ jobs:
           name: xserver-auto-login-results-${{ github.run_number }}
           path: |
             *.png
-          retention-days: 7
+          retention-days: 1
           
       - name: 🧹 清理旧的工作流运行记录
         uses: MajorScruffy/delete-old-workflow-runs@v0.3.0
