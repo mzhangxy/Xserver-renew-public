@@ -1,3 +1,3 @@
-playwright==1.38.0
+patchright
 playwright-stealth==1.0.6
 requests>=2.31.0
