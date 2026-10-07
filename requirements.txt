@@ -1,3 +1,2 @@
-patchright
-playwright-stealth==1.0.6
+DrissionPage
 requests>=2.31.0
